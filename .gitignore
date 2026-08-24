@@ -64,3 +64,4 @@ htmlcov/
 
 # ===== Internal =====
 /.work/
+.trae-html-share-packages/

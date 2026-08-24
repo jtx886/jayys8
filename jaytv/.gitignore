@@ -1,0 +1,24 @@
+# ===== Jay影视 项目忽略文件 =====
+
+# 安装生成的文件
+includes/config.php
+install.lock
+
+# 用户上传内容
+uploads/*
+!uploads/index.html
+!uploads/avatars/
+uploads/avatars/*
+!uploads/avatars/index.html
+
+# 日志文件
+*.log
+error_log
+
+# 临时文件
+*.tmp
+*.temp
+*.swp
+*~
+.DS_Store
+Thumbs.db
