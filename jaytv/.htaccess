@@ -1,0 +1,30 @@
+RewriteEngine On
+
+# PHP配置 - 兼容PHP7.4-8.x
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+    php_value max_execution_time 60
+</IfModule>
+
+# 保护敏感文件
+<FilesMatch "\.(sql|log|lock|md)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 保护配置文件
+<Files "config.php">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# 禁止目录浏览
+Options -Indexes
+
+# 默认首页
+DirectoryIndex index.php index.html
+
+# 错误页面
+ErrorDocument 404 /index.php
