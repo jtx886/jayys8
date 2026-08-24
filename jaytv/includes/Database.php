@@ -1,6 +1,7 @@
 <?php
 /**
  * Jay影视 - 数据库类
+ * 兼容PHP 7.4 - 8.x
  */
 
 class Database {
@@ -8,9 +9,10 @@ class Database {
     private $conn;
     
     private function __construct() {
-        $this->conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-        if ($this->conn->connect_error) {
-            die('数据库连接失败: ' . $this->conn->connect_error);
+        mysqli_report(MYSQLI_REPORT_OFF);
+        $this->conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+        if ($this->conn->connect_errno) {
+            throw new Exception('MySQL连接失败 [' . $this->conn->connect_errno . ']: ' . $this->conn->connect_error);
         }
         $this->conn->set_charset('utf8mb4');
     }
@@ -29,26 +31,34 @@ class Database {
     public function query($sql, $params = []) {
         $stmt = $this->conn->prepare($sql);
         if (!$stmt) {
-            die('SQL错误: ' . $this->conn->error);
+            throw new Exception('SQL预处理错误: ' . $this->conn->error . ' | SQL: ' . substr($sql, 0, 150));
         }
-        if ($params) {
+        if (!empty($params)) {
             $types = '';
+            $args = [];
             foreach ($params as $param) {
                 if (is_int($param)) $types .= 'i';
-                elseif (is_float($param)) $types .= 'd';
+                elseif (is_float($param) || is_double($param)) $types .= 'd';
                 elseif (is_string($param)) $types .= 's';
                 else $types .= 'b';
             }
-            $stmt->bind_param($types, ...$params);
+            $args[] = $types;
+            foreach ($params as $i => $param) {
+                $args[] = &$params[$i];
+            }
+            call_user_func_array([$stmt, 'bind_param'], $args);
         }
         $stmt->execute();
+        if ($stmt->errno) {
+            throw new Exception('SQL执行错误: ' . $stmt->error);
+        }
         return $stmt;
     }
     
     public function fetch($sql, $params = []) {
         $stmt = $this->query($sql, $params);
         $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
+        $row = $result ? $result->fetch_assoc() : null;
         $stmt->close();
         return $row;
     }
@@ -57,8 +67,10 @@ class Database {
         $stmt = $this->query($sql, $params);
         $result = $stmt->get_result();
         $rows = [];
-        while ($row = $result->fetch_assoc()) {
-            $rows[] = $row;
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $rows[] = $row;
+            }
         }
         $stmt->close();
         return $rows;
@@ -91,7 +103,7 @@ class Database {
         return $this->conn->affected_rows;
     }
     
-    public function begin_transaction() {
+    public function beginTransaction() {
         $this->conn->begin_transaction();
     }
     
